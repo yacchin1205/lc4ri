@@ -34,6 +34,8 @@ func Run(args []string) error {
 		return app.Enable(args[1:])
 	case "disable":
 		return app.Disable(args[1:])
+	case "image":
+		return app.Image(args[1:])
 	case "ssh":
 		return app.SSH(args[1:])
 	default:
@@ -81,6 +83,7 @@ commands:
   logs [docker-compose-logs-options...]
   enable nbsearch
   disable nbsearch
+  image edit
   ssh keygen [ssh-keygen-options...]
   ssh authorize [--pubkey public_key_file] [-i identity_file] [-p port] target`
 }

@@ -157,7 +157,7 @@ func (a *App) ensureComposeFile() error {
 }
 
 func (a *App) ensureNotebookDockerfile() error {
-	path := filepath.Join(a.runtimeDir, "notebook", "Dockerfile")
+	path := a.notebookDockerfilePath()
 	if _, err := os.Stat(path); err == nil {
 		return nil
 	} else if !errors.Is(err, os.ErrNotExist) {
@@ -350,9 +350,12 @@ FROM ${LC4RI_BASE_IMAGE}
 
 USER root
 
+# DO NOT EDIT: this section is managed by lc4ri.
 COPY . /tmp/lc4ri-notebook
 RUN set -eu; \
-    find /tmp/lc4ri-notebook -mindepth 2 -maxdepth 2 -type f -name build.sh | sort | while IFS= read -r script; do sh "$script"; done; \
+    find /tmp/lc4ri-notebook -mindepth 2 -maxdepth 2 -type f -name build.sh | sort | while IFS= read -r script; do \
+        sh "$script"; \
+    done; \
     rm -rf /tmp/lc4ri-notebook
 `
 }

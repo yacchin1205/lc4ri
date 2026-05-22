@@ -63,8 +63,16 @@ Enable NBSearch before starting the environment when notebook search is needed:
 $ lc4ri enable nbsearch
 ```
 
-`lc4ri` builds the notebook from `.lc4ri/notebook/Dockerfile`, so that directory
-is the local customization point for the notebook image.
+`lc4ri` builds the notebook from `.lc4ri/notebook/Dockerfile`.
+
+To edit the notebook image Dockerfile:
+
+```console
+$ lc4ri image edit
+```
+
+This opens `.lc4ri/notebook/Dockerfile` with `$VISUAL`, `$EDITOR`, or `vi`.
+The default Dockerfile marks the lc4ri-managed section with `DO NOT EDIT`.
 
 `lc4ri enable nbsearch` adds `.lc4ri/compose.nbsearch.yaml` and
 `.lc4ri/notebook/nbsearch/build.sh` to enable the notebook-side extension during
