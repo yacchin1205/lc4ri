@@ -81,6 +81,9 @@ func (f NBSearch) writeNotebookBuildScript() error {
 	if err := writeFile(filepath.Join(dir, "build.sh"), nbsearchNotebookBuildScript(), 0o644); err != nil {
 		return err
 	}
+	if err := writeFile(filepath.Join(dir, "initial-index-hook.sh"), nbsearchInitialIndexHookScript(), 0o644); err != nil {
+		return err
+	}
 	if err := writeFile(filepath.Join(dir, "initial-index.sh"), nbsearchInitialIndexScript(), 0o644); err != nil {
 		return err
 	}
@@ -135,9 +138,18 @@ func nbsearchNotebookBuildScript() string {
 	return `set -eu
 script_dir=$(dirname "$0")
 jupyter labextension enable nbsearch --level=system
-install -m 0755 "${script_dir}/initial-index.sh" /usr/local/bin/before-notebook.d/nbsearch-initial-index.sh
+install -m 0755 "${script_dir}/initial-index-hook.sh" /usr/local/bin/before-notebook.d/nbsearch-initial-index.sh
+install -m 0755 "${script_dir}/initial-index.sh" /usr/local/bin/lc4ri-nbsearch-initial-index
 fix-permissions "${CONDA_DIR}"
 fix-permissions "/home/${NB_USER}"
+`
+}
+
+func nbsearchInitialIndexHookScript() string {
+	return `#!/bin/bash
+
+log=/tmp/lc4ri-nbsearch-initial-index.log
+/usr/local/bin/lc4ri-nbsearch-initial-index >> "${log}" 2>&1 &
 `
 }
 
