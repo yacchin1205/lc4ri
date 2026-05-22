@@ -50,6 +50,33 @@ To start the environment without opening a browser:
 $ lc4ri up --no-open
 ```
 
+`lc4ri up` builds the local notebook image and pulls missing base images by
+default. To refresh base images before starting:
+
+```console
+$ lc4ri up --pull
+```
+
+Enable NBSearch before starting the environment when notebook search is needed:
+
+```console
+$ lc4ri enable nbsearch
+```
+
+`lc4ri` builds the notebook from `.lc4ri/notebook/Dockerfile`, so that directory
+is the local customization point for the notebook image.
+
+`lc4ri enable nbsearch` adds `.lc4ri/compose.nbsearch.yaml` and
+`.lc4ri/notebook/nbsearch/build.sh` to enable the notebook-side extension during
+the notebook image build. Feature compose fragments matching
+`.lc4ri/compose.*.yaml` are loaded automatically.
+
+To disable NBSearch:
+
+```console
+$ lc4ri disable nbsearch
+```
+
 Then stop it when you are done:
 
 ```console
@@ -93,7 +120,12 @@ directory and uses `notebooks/` as the notebook root:
   .ssh/
   .lc4ri/
     compose.yaml
+    compose.nbsearch.yaml
     .env
+    notebook/
+      Dockerfile
+      nbsearch/
+        build.sh
   notebooks/
 ```
 
@@ -126,8 +158,11 @@ At least initially, `lc4ri` is not intended to provide:
 
 - `lc4ri up`
 - `lc4ri up --no-open`
+- `lc4ri up --pull`
 - `lc4ri open`
 - `lc4ri down`
 - `lc4ri status`
+- `lc4ri enable nbsearch`
+- `lc4ri disable nbsearch`
 - `lc4ri ssh keygen`
 - `lc4ri ssh authorize`

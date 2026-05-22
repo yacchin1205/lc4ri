@@ -8,6 +8,8 @@ import (
 	"math/big"
 	"net/http"
 	"os"
+	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -16,16 +18,20 @@ import (
 const defaultImage = "niicloudoperation/notebook:feature-lab"
 const serverReadyTimeout = 45 * time.Second
 
-func (a *App) Up(open bool) error {
+func (a *App) Up(options *UpOptions) error {
 	if err := a.ensureRuntimeFiles(); err != nil {
 		return err
 	}
 
-	if err := a.composeRunner.Up(a.workdir, a.composeFile, a.envFile, a.projectName); err != nil {
+	composeFiles, err := a.activeComposeFiles()
+	if err != nil {
+		return err
+	}
+	if err := a.composeRunner.Up(a.workdir, composeFiles, a.envFile, a.projectName, options.PullPolicy); err != nil {
 		return err
 	}
 
-	if open {
+	if options.Open {
 		env, err := a.loadEnv()
 		if err != nil {
 			return err
@@ -48,7 +54,11 @@ func (a *App) Open() error {
 		return err
 	}
 
-	running, err := a.composeRunner.IsRunning(a.workdir, a.composeFile, a.envFile, a.projectName, "notebook")
+	composeFiles, err := a.activeComposeFiles()
+	if err != nil {
+		return err
+	}
+	running, err := a.composeRunner.IsRunning(a.workdir, composeFiles, a.envFile, a.projectName, "notebook")
 	if err != nil {
 		return err
 	}
@@ -68,7 +78,11 @@ func (a *App) Down() error {
 		return err
 	}
 
-	return a.composeRunner.Down(a.workdir, a.composeFile, a.envFile, a.projectName)
+	composeFiles, err := a.activeComposeFiles()
+	if err != nil {
+		return err
+	}
+	return a.composeRunner.Down(a.workdir, composeFiles, a.envFile, a.projectName)
 }
 
 func (a *App) Status() error {
@@ -79,7 +93,11 @@ func (a *App) Status() error {
 		return err
 	}
 
-	return a.composeRunner.Status(a.workdir, a.composeFile, a.envFile, a.projectName)
+	composeFiles, err := a.activeComposeFiles()
+	if err != nil {
+		return err
+	}
+	return a.composeRunner.Status(a.workdir, composeFiles, a.envFile, a.projectName)
 }
 
 func (a *App) ensureRuntimeFiles() error {
@@ -88,6 +106,9 @@ func (a *App) ensureRuntimeFiles() error {
 	}
 
 	if err := a.ensureComposeFile(); err != nil {
+		return err
+	}
+	if err := a.ensureNotebookDockerfile(); err != nil {
 		return err
 	}
 	if err := a.ensureEnvFile(); err != nil {
@@ -117,6 +138,23 @@ func (a *App) ensureComposeFile() error {
 		return fmt.Errorf("write compose file %s: %w", a.composeFile, err)
 	}
 
+	return nil
+}
+
+func (a *App) ensureNotebookDockerfile() error {
+	path := filepath.Join(a.runtimeDir, "notebook", "Dockerfile")
+	if _, err := os.Stat(path); err == nil {
+		return nil
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("stat notebook Dockerfile %s: %w", path, err)
+	}
+
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return fmt.Errorf("create notebook build directory %s: %w", filepath.Dir(path), err)
+	}
+	if err := os.WriteFile(path, []byte(notebookDockerfile()), 0o644); err != nil {
+		return fmt.Errorf("write notebook Dockerfile %s: %w", path, err)
+	}
 	return nil
 }
 
@@ -243,6 +281,17 @@ func (a *App) requireEnvFile() error {
 	return nil
 }
 
+func (a *App) activeComposeFiles() ([]string, error) {
+	composeFiles := []string{a.composeFile}
+	matches, err := filepath.Glob(filepath.Join(a.runtimeDir, "compose.*.yaml"))
+	if err != nil {
+		return nil, fmt.Errorf("find compose feature fragments: %w", err)
+	}
+	sort.Strings(matches)
+	composeFiles = append(composeFiles, matches...)
+	return composeFiles, nil
+}
+
 type Env struct {
 	Port     string
 	Token    string
@@ -255,7 +304,10 @@ type Env struct {
 func composeTemplate() string {
 	return `services:
   notebook:
-    image: ${LC4RI_IMAGE}
+    build:
+      context: ./.lc4ri/notebook
+      args:
+        LC4RI_BASE_IMAGE: ${LC4RI_IMAGE}
     user: root
     working_dir: /home/${LC4RI_USER}/notebooks
     environment:
@@ -274,6 +326,19 @@ func composeTemplate() string {
       - 127.0.0.1:${LC4RI_PORT}:8888
     volumes:
       - ./:/home/${LC4RI_USER}
+`
+}
+
+func notebookDockerfile() string {
+	return `ARG LC4RI_BASE_IMAGE
+FROM ${LC4RI_BASE_IMAGE}
+
+USER root
+
+COPY . /tmp/lc4ri-notebook
+RUN set -eu; \
+    find /tmp/lc4ri-notebook -mindepth 2 -maxdepth 2 -type f -name build.sh | sort | while IFS= read -r script; do sh "$script"; done; \
+    rm -rf /tmp/lc4ri-notebook
 `
 }
 

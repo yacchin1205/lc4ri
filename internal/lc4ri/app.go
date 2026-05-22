@@ -17,17 +17,21 @@ func Run(args []string) error {
 
 	switch args[0] {
 	case "up":
-		open, err := parseUpArgs(args[1:])
+		options, err := parseUpArgs(args[1:])
 		if err != nil {
 			return err
 		}
-		return app.Up(open)
+		return app.Up(options)
 	case "open":
 		return app.Open()
 	case "down":
 		return app.Down()
 	case "status":
 		return app.Status()
+	case "enable":
+		return app.Enable(args[1:])
+	case "disable":
+		return app.Disable(args[1:])
 	case "ssh":
 		return app.SSH(args[1:])
 	default:
@@ -39,26 +43,41 @@ func usageError() error {
 	return errors.New(usageText())
 }
 
-func parseUpArgs(args []string) (bool, error) {
-	switch len(args) {
-	case 0:
-		return true, nil
-	case 1:
-		if args[0] == "--no-open" {
-			return false, nil
+type UpOptions struct {
+	Open       bool
+	PullPolicy string
+}
+
+func parseUpArgs(args []string) (*UpOptions, error) {
+	options := &UpOptions{
+		Open:       true,
+		PullPolicy: "missing",
+	}
+
+	for _, arg := range args {
+		switch arg {
+		case "--no-open":
+			options.Open = false
+		case "--pull":
+			options.PullPolicy = "always"
+		default:
+			return nil, fmt.Errorf("invalid up argument %q\n\n%s", arg, usageText())
 		}
 	}
 
-	return false, fmt.Errorf("invalid up arguments %q\n\n%s", args, usageText())
+	return options, nil
 }
 
 func usageText() string {
 	return `usage: lc4ri <command>
 
 commands:
-  up [--no-open]
+  up [--no-open] [--pull]
   open
   down
   status
-  ssh keygen [ssh-keygen-options...]`
+  enable nbsearch
+  disable nbsearch
+  ssh keygen [ssh-keygen-options...]
+  ssh authorize [--pubkey public_key_file] [-i identity_file] [-p port] target`
 }

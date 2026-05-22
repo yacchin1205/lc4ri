@@ -69,7 +69,11 @@ func (a *App) SSHKeygen(args []string) error {
 	}
 
 	execArgs := append([]string{"bash", "-lc", sshKeygenScript, "lc4ri-ssh-keygen"}, args...)
-	return a.composeRunner.ExecAsUser(a.workdir, a.composeFile, a.envFile, a.projectName, "notebook", env.Username, execArgs...)
+	composeFiles, err := a.activeComposeFiles()
+	if err != nil {
+		return err
+	}
+	return a.composeRunner.ExecAsUser(a.workdir, composeFiles, a.envFile, a.projectName, "notebook", env.Username, execArgs...)
 }
 
 func (a *App) SSHAuthorize(args []string) error {
@@ -258,7 +262,11 @@ func (a *App) requireRunningNotebook() (*Env, error) {
 		return nil, err
 	}
 
-	running, err := a.composeRunner.IsRunning(a.workdir, a.composeFile, a.envFile, a.projectName, "notebook")
+	composeFiles, err := a.activeComposeFiles()
+	if err != nil {
+		return nil, err
+	}
+	running, err := a.composeRunner.IsRunning(a.workdir, composeFiles, a.envFile, a.projectName, "notebook")
 	if err != nil {
 		return nil, err
 	}

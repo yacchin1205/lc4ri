@@ -10,8 +10,8 @@ import (
 
 type ComposeRunner struct{}
 
-func (ComposeRunner) Up(workdir, composeFile, envFile, projectName string) error {
-	cmd := composeCommand(workdir, composeFile, envFile, projectName, "up", "-d")
+func (ComposeRunner) Up(workdir string, composeFiles []string, envFile, projectName, pullPolicy string) error {
+	cmd := composeCommand(workdir, composeFiles, envFile, projectName, "up", "-d", "--build", "--pull", pullPolicy)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
@@ -23,8 +23,8 @@ func (ComposeRunner) Up(workdir, composeFile, envFile, projectName string) error
 	return nil
 }
 
-func (ComposeRunner) Down(workdir, composeFile, envFile, projectName string) error {
-	cmd := composeCommand(workdir, composeFile, envFile, projectName, "down")
+func (ComposeRunner) Down(workdir string, composeFiles []string, envFile, projectName string) error {
+	cmd := composeCommand(workdir, composeFiles, envFile, projectName, "down")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
@@ -36,8 +36,8 @@ func (ComposeRunner) Down(workdir, composeFile, envFile, projectName string) err
 	return nil
 }
 
-func (ComposeRunner) Status(workdir, composeFile, envFile, projectName string) error {
-	cmd := composeCommand(workdir, composeFile, envFile, projectName, "ps")
+func (ComposeRunner) Status(workdir string, composeFiles []string, envFile, projectName string) error {
+	cmd := composeCommand(workdir, composeFiles, envFile, projectName, "ps")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
@@ -49,8 +49,8 @@ func (ComposeRunner) Status(workdir, composeFile, envFile, projectName string) e
 	return nil
 }
 
-func (ComposeRunner) IsRunning(workdir, composeFile, envFile, projectName, service string) (bool, error) {
-	cmd := composeCommand(workdir, composeFile, envFile, projectName, "ps", "--status", "running", "--services")
+func (ComposeRunner) IsRunning(workdir string, composeFiles []string, envFile, projectName, service string) (bool, error) {
+	cmd := composeCommand(workdir, composeFiles, envFile, projectName, "ps", "--status", "running", "--services")
 
 	var stdout bytes.Buffer
 	cmd.Stdout = &stdout
@@ -69,25 +69,25 @@ func (ComposeRunner) IsRunning(workdir, composeFile, envFile, projectName, servi
 	return false, nil
 }
 
-func (ComposeRunner) Exec(workdir, composeFile, envFile, projectName, service string, args ...string) error {
-	return runComposeExec(workdir, composeFile, envFile, projectName, service, nil, args...)
+func (ComposeRunner) Exec(workdir string, composeFiles []string, envFile, projectName, service string, args ...string) error {
+	return runComposeExec(workdir, composeFiles, envFile, projectName, service, nil, args...)
 }
 
-func (ComposeRunner) ExecAsUser(workdir, composeFile, envFile, projectName, service, username string, args ...string) error {
+func (ComposeRunner) ExecAsUser(workdir string, composeFiles []string, envFile, projectName, service, username string, args ...string) error {
 	home := "/home/" + username
 	options := []string{
 		"--user", username,
 		"--env", "HOME=" + home,
 	}
-	return runComposeExec(workdir, composeFile, envFile, projectName, service, options, args...)
+	return runComposeExec(workdir, composeFiles, envFile, projectName, service, options, args...)
 }
 
-func runComposeExec(workdir, composeFile, envFile, projectName, service string, options []string, args ...string) error {
+func runComposeExec(workdir string, composeFiles []string, envFile, projectName, service string, options []string, args ...string) error {
 	composeArgs := append([]string{"exec"}, options...)
 	composeArgs = append(composeArgs, service)
 	composeArgs = append(composeArgs, args...)
 
-	cmd := composeCommand(workdir, composeFile, envFile, projectName, composeArgs...)
+	cmd := composeCommand(workdir, composeFiles, envFile, projectName, composeArgs...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
@@ -99,14 +99,15 @@ func runComposeExec(workdir, composeFile, envFile, projectName, service string, 
 	return nil
 }
 
-func composeCommand(workdir, composeFile, envFile, projectName string, args ...string) *exec.Cmd {
+func composeCommand(workdir string, composeFiles []string, envFile, projectName string, args ...string) *exec.Cmd {
 	base := []string{
 		"compose",
 		"--project-directory", workdir,
-		"-f", composeFile,
-		"--env-file", envFile,
-		"-p", projectName,
 	}
+	for _, composeFile := range composeFiles {
+		base = append(base, "-f", composeFile)
+	}
+	base = append(base, "--env-file", envFile, "-p", projectName)
 
 	return exec.Command("docker", append(base, args...)...)
 }
