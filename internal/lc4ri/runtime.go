@@ -6,19 +6,37 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const defaultImage = "niicloudoperation/notebook:feature-lab"
+const serverReadyTimeout = 45 * time.Second
 
-func (a *App) Up() error {
+func (a *App) Up(open bool) error {
 	if err := a.ensureRuntimeFiles(); err != nil {
 		return err
 	}
 
-	return a.composeRunner.Up(a.workdir, a.composeFile, a.envFile, a.projectName)
+	if err := a.composeRunner.Up(a.workdir, a.composeFile, a.envFile, a.projectName); err != nil {
+		return err
+	}
+
+	if open {
+		env, err := a.loadEnv()
+		if err != nil {
+			return err
+		}
+		if err := waitForServer(env); err != nil {
+			return err
+		}
+		return a.Open()
+	}
+
+	return nil
 }
 
 func (a *App) Open() error {
@@ -278,6 +296,35 @@ func newToken() (string, error) {
 	}
 
 	return hex.EncodeToString(buf), nil
+}
+
+func waitForServer(env *Env) error {
+	url := fmt.Sprintf("http://localhost:%s/tree?token=%s", env.Port, env.Token)
+	deadline := time.Now().Add(serverReadyTimeout)
+	client := &http.Client{
+		Timeout: 2 * time.Second,
+	}
+
+	var lastErr error
+	for time.Now().Before(deadline) {
+		resp, err := client.Get(url)
+		if err == nil {
+			resp.Body.Close()
+			if resp.StatusCode < http.StatusInternalServerError {
+				return nil
+			}
+			lastErr = fmt.Errorf("server returned %s", resp.Status)
+		} else {
+			lastErr = err
+		}
+
+		time.Sleep(500 * time.Millisecond)
+	}
+
+	if lastErr != nil {
+		return fmt.Errorf("wait for notebook server: %w", lastErr)
+	}
+	return errors.New("wait for notebook server timed out")
 }
 
 func currentUsername() (string, error) {

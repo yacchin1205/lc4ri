@@ -17,7 +17,11 @@ func Run(args []string) error {
 
 	switch args[0] {
 	case "up":
-		return app.Up()
+		open, err := parseUpArgs(args[1:])
+		if err != nil {
+			return err
+		}
+		return app.Up(open)
 	case "open":
 		return app.Open()
 	case "down":
@@ -33,11 +37,24 @@ func usageError() error {
 	return errors.New(usageText())
 }
 
+func parseUpArgs(args []string) (bool, error) {
+	switch len(args) {
+	case 0:
+		return true, nil
+	case 1:
+		if args[0] == "--no-open" {
+			return false, nil
+		}
+	}
+
+	return false, fmt.Errorf("invalid up arguments %q\n\n%s", args, usageText())
+}
+
 func usageText() string {
 	return `usage: lc4ri <command>
 
 commands:
-  up
+  up [--no-open]
   open
   down
   status`

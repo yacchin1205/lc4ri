@@ -41,7 +41,14 @@ This is expected to:
 1. start a local notebook environment,
 2. mount the current directory as `/home/$USER`,
 3. bind the service to `localhost`,
-4. make `notebooks/` available from the notebook UI.
+4. open the notebook UI in your browser,
+5. make `notebooks/` available from the notebook UI.
+
+To start the environment without opening a browser:
+
+```console
+$ lc4ri up --no-open
+```
 
 Then stop it when you are done:
 
@@ -97,6 +104,7 @@ At least initially, `lc4ri` is not intended to provide:
 `lc4ri` provides a minimal local notebook workflow:
 
 - `lc4ri up`
+- `lc4ri up --no-open`
 - `lc4ri open`
 - `lc4ri down`
 - `lc4ri status`
