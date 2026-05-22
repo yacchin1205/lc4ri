@@ -21,11 +21,15 @@ type App struct {
 }
 
 func NewApp() (*App, error) {
-	workdir, err := os.Getwd()
+	cwd, err := os.Getwd()
 	if err != nil {
 		return nil, fmt.Errorf("get working directory: %w", err)
 	}
 
+	workdir, err := findWorkdir(cwd)
+	if err != nil {
+		return nil, err
+	}
 	runtimeDir := filepath.Join(workdir, ".lc4ri")
 
 	return &App{
@@ -38,6 +42,29 @@ func NewApp() (*App, error) {
 		composeRunner: ComposeRunner{},
 		browser:       Browser{},
 	}, nil
+}
+
+func findWorkdir(cwd string) (string, error) {
+	dir := cwd
+	for {
+		runtimeDir := filepath.Join(dir, ".lc4ri")
+		info, err := os.Stat(runtimeDir)
+		if err == nil {
+			if !info.IsDir() {
+				return "", fmt.Errorf("runtime path is not a directory: %s", runtimeDir)
+			}
+			return dir, nil
+		}
+		if !os.IsNotExist(err) {
+			return "", fmt.Errorf("stat runtime directory %s: %w", runtimeDir, err)
+		}
+
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return cwd, nil
+		}
+		dir = parent
+	}
 }
 
 func deriveProjectName(workdir string) string {
