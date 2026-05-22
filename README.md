@@ -64,6 +64,27 @@ $ lc4ri open
 
 `lc4ri open` is expected to open the running environment in your browser.
 
+Generate an SSH key inside the running notebook environment:
+
+```console
+$ lc4ri ssh keygen
+```
+
+`lc4ri ssh keygen` prompts for a non-empty passphrase and then runs
+`ssh-keygen` in the notebook container. Additional `ssh-keygen` options can be
+passed after `keygen`, except `-N`.
+
+Authorize the notebook environment's public key on a remote SSH target:
+
+```console
+$ lc4ri ssh authorize hostname
+```
+
+`lc4ri ssh authorize` appends the selected public key to the remote
+`~/.ssh/authorized_keys` for the user that the SSH connection logs in as. Use
+`--pubkey` to select the public key when needed. Use `-i` and `-p` to choose the
+host-side SSH identity file and port used for the authorization connection.
+
 `lc4ri` keeps its local runtime files under `.lc4ri/` in the current
 directory and uses `notebooks/` as the notebook root:
 
@@ -108,3 +129,5 @@ At least initially, `lc4ri` is not intended to provide:
 - `lc4ri open`
 - `lc4ri down`
 - `lc4ri status`
+- `lc4ri ssh keygen`
+- `lc4ri ssh authorize`

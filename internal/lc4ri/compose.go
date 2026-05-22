@@ -69,6 +69,36 @@ func (ComposeRunner) IsRunning(workdir, composeFile, envFile, projectName, servi
 	return false, nil
 }
 
+func (ComposeRunner) Exec(workdir, composeFile, envFile, projectName, service string, args ...string) error {
+	return runComposeExec(workdir, composeFile, envFile, projectName, service, nil, args...)
+}
+
+func (ComposeRunner) ExecAsUser(workdir, composeFile, envFile, projectName, service, username string, args ...string) error {
+	home := "/home/" + username
+	options := []string{
+		"--user", username,
+		"--env", "HOME=" + home,
+	}
+	return runComposeExec(workdir, composeFile, envFile, projectName, service, options, args...)
+}
+
+func runComposeExec(workdir, composeFile, envFile, projectName, service string, options []string, args ...string) error {
+	composeArgs := append([]string{"exec"}, options...)
+	composeArgs = append(composeArgs, service)
+	composeArgs = append(composeArgs, args...)
+
+	cmd := composeCommand(workdir, composeFile, envFile, projectName, composeArgs...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("run docker compose exec: %w", err)
+	}
+
+	return nil
+}
+
 func composeCommand(workdir, composeFile, envFile, projectName string, args ...string) *exec.Cmd {
 	base := []string{
 		"compose",

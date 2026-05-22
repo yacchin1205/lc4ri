@@ -28,6 +28,8 @@ func Run(args []string) error {
 		return app.Down()
 	case "status":
 		return app.Status()
+	case "ssh":
+		return app.SSH(args[1:])
 	default:
 		return fmt.Errorf("unknown command %q\n\n%s", args[0], usageText())
 	}
@@ -57,5 +59,6 @@ commands:
   up [--no-open]
   open
   down
-  status`
+  status
+  ssh keygen [ssh-keygen-options...]`
 }
