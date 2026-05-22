@@ -1,0 +1,38 @@
+version: 2
+
+project_name: lc4ri
+
+before:
+  hooks:
+    - go test ./...
+
+builds:
+  - id: lc4ri
+    main: .
+    binary: lc4ri
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+
+archives:
+  - id: binaries
+    ids:
+      - lc4ri
+    formats:
+      - binary
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  use: git
