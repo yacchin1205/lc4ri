@@ -64,6 +64,20 @@ func (ComposeRunner) Logs(workdir string, composeFiles []string, envFile, projec
 }
 
 func (ComposeRunner) IsRunning(workdir string, composeFiles []string, envFile, projectName, service string) (bool, error) {
+	services, err := ComposeRunner{}.RunningServices(workdir, composeFiles, envFile, projectName)
+	if err != nil {
+		return false, err
+	}
+	for _, runningService := range services {
+		if runningService == service {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+func (ComposeRunner) RunningServices(workdir string, composeFiles []string, envFile, projectName string) ([]string, error) {
 	cmd := composeCommand(workdir, composeFiles, envFile, projectName, "ps", "--status", "running", "--services")
 
 	var stdout bytes.Buffer
@@ -71,16 +85,18 @@ func (ComposeRunner) IsRunning(workdir string, composeFiles []string, envFile, p
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
-		return false, fmt.Errorf("run docker compose ps --status running: %w", err)
+		return nil, fmt.Errorf("run docker compose ps --status running: %w", err)
 	}
 
+	var services []string
 	for _, line := range strings.Split(stdout.String(), "\n") {
-		if strings.TrimSpace(line) == service {
-			return true, nil
+		service := strings.TrimSpace(line)
+		if service != "" {
+			services = append(services, service)
 		}
 	}
 
-	return false, nil
+	return services, nil
 }
 
 func (ComposeRunner) Exec(workdir string, composeFiles []string, envFile, projectName, service string, args ...string) error {

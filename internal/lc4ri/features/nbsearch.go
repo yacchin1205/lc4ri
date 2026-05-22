@@ -1,11 +1,14 @@
 package features
 
 import (
+	"bufio"
 	"embed"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 )
@@ -41,13 +44,20 @@ func (f NBSearch) Enable() error {
 	return nil
 }
 
-func (f NBSearch) Disable() error {
+func (f NBSearch) Disable(options DisableOptions) error {
 	composeFile := f.composeFile()
 	if _, err := os.Stat(composeFile); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return fmt.Errorf("nbsearch is not enabled: %s", composeFile)
 		}
 		return fmt.Errorf("stat nbsearch compose file %s: %w", composeFile, err)
+	}
+
+	if err := confirmNBSearchVolumeRemoval(os.Stdin, os.Stderr); err != nil {
+		return err
+	}
+	if err := removeNBSearchVolumes(options.ProjectName); err != nil {
+		return err
 	}
 
 	if err := os.Remove(composeFile); err != nil {
@@ -60,6 +70,62 @@ func (f NBSearch) Disable() error {
 		return err
 	}
 
+	return nil
+}
+
+func confirmNBSearchVolumeRemoval(input io.Reader, output io.Writer) error {
+	fmt.Fprint(output, "Remove nbsearch volumes? [y/N] ")
+
+	scanner := bufio.NewScanner(input)
+	if !scanner.Scan() {
+		if err := scanner.Err(); err != nil {
+			return fmt.Errorf("read confirmation: %w", err)
+		}
+		return errors.New("aborted: nbsearch volumes must be removed to disable nbsearch")
+	}
+
+	answer := strings.ToLower(strings.TrimSpace(scanner.Text()))
+	if answer != "y" && answer != "yes" {
+		return errors.New("aborted: nbsearch volumes must be removed to disable nbsearch")
+	}
+
+	return nil
+}
+
+func removeNBSearchVolumes(projectName string) error {
+	for _, volume := range nbsearchVolumeNames(projectName) {
+		if err := removeDockerVolume(volume); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func nbsearchVolumeNames(projectName string) []string {
+	return []string{
+		projectName + "_nbsearch_solr_data",
+		projectName + "_nbsearch_minio_data",
+	}
+}
+
+func removeDockerVolume(volume string) error {
+	inspect := exec.Command("docker", "volume", "inspect", volume)
+	output, err := inspect.CombinedOutput()
+	if err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) && strings.Contains(string(output), "No such volume") {
+			fmt.Fprintf(os.Stderr, "warning: nbsearch volume not found: %s\n", volume)
+			return nil
+		}
+		return fmt.Errorf("inspect docker volume %s: %w: %s", volume, err, strings.TrimSpace(string(output)))
+	}
+
+	remove := exec.Command("docker", "volume", "rm", volume)
+	remove.Stdout = os.Stdout
+	remove.Stderr = os.Stderr
+	if err := remove.Run(); err != nil {
+		return fmt.Errorf("remove docker volume %s: %w", volume, err)
+	}
 	return nil
 }
 
