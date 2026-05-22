@@ -100,6 +100,21 @@ func (a *App) Status() error {
 	return a.composeRunner.Status(a.workdir, composeFiles, a.envFile, a.projectName)
 }
 
+func (a *App) Logs(args []string) error {
+	if err := a.requireComposeFile(); err != nil {
+		return err
+	}
+	if _, err := a.loadEnv(); err != nil {
+		return err
+	}
+
+	composeFiles, err := a.activeComposeFiles()
+	if err != nil {
+		return err
+	}
+	return a.composeRunner.Logs(a.workdir, composeFiles, a.envFile, a.projectName, args...)
+}
+
 func (a *App) ensureRuntimeFiles() error {
 	if err := os.MkdirAll(a.runtimeDir, 0o755); err != nil {
 		return fmt.Errorf("create runtime directory %s: %w", a.runtimeDir, err)

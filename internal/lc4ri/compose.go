@@ -49,6 +49,20 @@ func (ComposeRunner) Status(workdir string, composeFiles []string, envFile, proj
 	return nil
 }
 
+func (ComposeRunner) Logs(workdir string, composeFiles []string, envFile, projectName string, args ...string) error {
+	composeArgs := append([]string{"logs"}, args...)
+	cmd := composeCommand(workdir, composeFiles, envFile, projectName, composeArgs...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("run docker compose logs: %w", err)
+	}
+
+	return nil
+}
+
 func (ComposeRunner) IsRunning(workdir string, composeFiles []string, envFile, projectName, service string) (bool, error) {
 	cmd := composeCommand(workdir, composeFiles, envFile, projectName, "ps", "--status", "running", "--services")
 

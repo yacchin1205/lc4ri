@@ -28,6 +28,8 @@ func Run(args []string) error {
 		return app.Down()
 	case "status":
 		return app.Status()
+	case "logs":
+		return app.Logs(args[1:])
 	case "enable":
 		return app.Enable(args[1:])
 	case "disable":
@@ -76,6 +78,7 @@ commands:
   open
   down
   status
+  logs [docker-compose-logs-options...]
   enable nbsearch
   disable nbsearch
   ssh keygen [ssh-keygen-options...]
