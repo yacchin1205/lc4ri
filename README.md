@@ -27,6 +27,29 @@ Instead, `lc4ri` prepares a local Jupyter-based environment backed by Docker,
 mounts your current directory as the notebook user's home directory, and opens a
 notebook workspace for just one user on the same machine.
 
+## Installation
+
+Download the binary for your OS and architecture from the
+[Releases page](https://github.com/yacchin1205/lc4ri/releases), rename it to
+`lc4ri`, make it executable, and place it on your `PATH`.
+
+For example, on macOS (Apple silicon) with the latest release:
+
+```console
+$ VERSION=2026.05.2
+$ curl -L -o lc4ri \
+    https://github.com/yacchin1205/lc4ri/releases/download/v${VERSION}/lc4ri_${VERSION}_darwin_arm64
+$ chmod +x lc4ri
+$ sudo mv lc4ri /usr/local/bin/
+```
+
+Replace `darwin_arm64` with `darwin_amd64`, `linux_amd64`, or `linux_arm64` as
+needed. On Windows, download `lc4ri_<version>_windows_<arch>.exe` and place it
+on your `PATH`.
+
+Checksums for each release are published as `checksums.txt` on the same
+Releases page.
+
 ## Typical Usage
 
 Run `lc4ri up` in a project directory:
