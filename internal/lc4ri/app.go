@@ -82,7 +82,9 @@ commands:
   status
   logs [docker-compose-logs-options...]
   enable nbsearch
+  enable mynerva [--repo git_url@ref]
   disable nbsearch
+  disable mynerva
   image edit
   ssh keygen [ssh-keygen-options...]
   ssh authorize [--pubkey public_key_file] [-i identity_file] [-p port] target`

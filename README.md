@@ -63,6 +63,19 @@ Enable NBSearch before starting the environment when notebook search is needed:
 $ lc4ri enable nbsearch
 ```
 
+Enable Mynerva before starting the environment when the notebook assistant is
+needed:
+
+```console
+$ lc4ri enable mynerva
+```
+
+To install Mynerva from an explicit Git ref during the notebook image build:
+
+```console
+$ lc4ri enable mynerva --repo https://github.com/NII-cloud-operation/jupyter-mynerva.git@main
+```
+
 `lc4ri` builds the notebook from `.lc4ri/notebook/Dockerfile`.
 
 To edit the notebook image Dockerfile:
@@ -79,10 +92,21 @@ The default Dockerfile marks the lc4ri-managed section with `DO NOT EDIT`.
 the notebook image build. Feature compose fragments matching
 `.lc4ri/compose.*.yaml` are loaded automatically.
 
+`lc4ri enable mynerva` adds `.lc4ri/notebook/mynerva/build.sh` to enable the
+preinstalled JupyterLab extension during the notebook image build. It also adds
+`.lc4ri/compose.mynerva.yaml` with `MYNERVA_SECRET_KEY` for encrypted API key
+storage.
+
 To disable NBSearch:
 
 ```console
 $ lc4ri disable nbsearch
+```
+
+To disable Mynerva:
+
+```console
+$ lc4ri disable mynerva
 ```
 
 Then stop it when you are done:
@@ -170,7 +194,12 @@ At least initially, `lc4ri` is not intended to provide:
 - `lc4ri open`
 - `lc4ri down`
 - `lc4ri status`
+- `lc4ri logs`
 - `lc4ri enable nbsearch`
 - `lc4ri disable nbsearch`
+- `lc4ri enable mynerva`
+- `lc4ri enable mynerva --repo git_url@ref`
+- `lc4ri disable mynerva`
+- `lc4ri image edit`
 - `lc4ri ssh keygen`
 - `lc4ri ssh authorize`
