@@ -7,21 +7,15 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 const mynervaName = "mynerva"
 
 type Mynerva struct {
 	RuntimeDir string
-	Repo       string
 }
 
 func (f Mynerva) Enable() error {
-	if err := validateMynervaRepo(f.Repo); err != nil {
-		return err
-	}
-
 	dir := f.notebookBuildDir()
 	if _, err := os.Stat(dir); err == nil {
 		return fmt.Errorf("mynerva is already enabled: %s", dir)
@@ -38,7 +32,7 @@ func (f Mynerva) Enable() error {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return fmt.Errorf("create mynerva notebook build directory %s: %w", dir, err)
 	}
-	if err := writeFile(filepath.Join(dir, "build.sh"), mynervaNotebookBuildScript(f.Repo), 0o644); err != nil {
+	if err := writeFile(filepath.Join(dir, "build.sh"), mynervaNotebookBuildScript(), 0o644); err != nil {
 		return err
 	}
 	secretKey, err := newFernetKey()
@@ -86,55 +80,13 @@ func (f Mynerva) notebookBuildDir() string {
 	return filepath.Join(f.RuntimeDir, "notebook", mynervaName)
 }
 
-func mynervaNotebookBuildScript(repo string) string {
-	install := ""
-	if repo != "" {
-		install = fmt.Sprintf(`if ! command -v npm; then
-  mamba install -y nodejs=22
-  mamba clean -a -f -y
-fi
-python -m pip install --upgrade --force-reinstall --no-cache-dir %s
-`, shellQuote(mynervaPipSpec(repo)))
-	}
-
-	return fmt.Sprintf(`set -eu
-%sjupyter labextension enable jupyter-mynerva --level=system
+func mynervaNotebookBuildScript() string {
+	return `set -eu
+python -m pip install --upgrade --no-cache-dir 'jupyter_mynerva>=2026.10.1'
+jupyter labextension enable jupyter-mynerva --level=system
 fix-permissions "${CONDA_DIR}"
 fix-permissions "/home/${NB_USER}"
-`, install)
-}
-
-func mynervaPipSpec(repo string) string {
-	return "git+" + repo
-}
-
-func validateMynervaRepo(repo string) error {
-	if repo == "" {
-		return nil
-	}
-	if strings.TrimSpace(repo) != repo || strings.ContainsAny(repo, " \t\n\r") {
-		return fmt.Errorf("mynerva repo must not contain whitespace: %s", repo)
-	}
-	if !strings.HasPrefix(repo, "https://") && !strings.HasPrefix(repo, "ssh://") && !strings.HasPrefix(repo, "git@") {
-		return fmt.Errorf("mynerva repo must be a git URL with an explicit ref: %s", repo)
-	}
-	if !hasGitRef(repo) {
-		return fmt.Errorf("mynerva repo must include an explicit ref with @: %s", repo)
-	}
-	return nil
-}
-
-func hasGitRef(repo string) bool {
-	if strings.HasPrefix(repo, "git@") {
-		index := strings.LastIndex(repo, "@")
-		return index > 0 && index < len(repo)-1 && strings.Count(repo, "@") >= 2
-	}
-	index := strings.LastIndex(repo, "@")
-	return index > 0 && index < len(repo)-1
-}
-
-func shellQuote(value string) string {
-	return "'" + strings.ReplaceAll(value, "'", "'\"'\"'") + "'"
+`
 }
 
 func newFernetKey() (string, error) {

@@ -25,6 +25,9 @@ func TestMynervaEnableWritesNotebookBuildScript(t *testing.T) {
 	if !strings.Contains(content, "jupyter labextension enable jupyter-mynerva --level=system") {
 		t.Fatalf("build script does not enable jupyter-mynerva:\n%s", content)
 	}
+	if !strings.Contains(content, "python -m pip install --upgrade --no-cache-dir 'jupyter_mynerva>=2026.10.1'") {
+		t.Fatalf("build script does not install the released Mynerva package:\n%s", content)
+	}
 	if strings.Contains(content, "command -v") {
 		t.Fatalf("build script contains preflight command checks:\n%s", content)
 	}
@@ -82,49 +85,6 @@ func TestMynervaComposeTemplateSetsSecretKey(t *testing.T) {
 	compose := mynervaComposeTemplate("secret")
 	if !strings.Contains(compose, "MYNERVA_SECRET_KEY: secret") {
 		t.Fatalf("compose template does not set MYNERVA_SECRET_KEY:\n%s", compose)
-	}
-}
-
-func TestMynervaEnableWithRepoWritesPipInstall(t *testing.T) {
-	runtimeDir := t.TempDir()
-	feature := Mynerva{
-		RuntimeDir: runtimeDir,
-		Repo:       "https://github.com/NII-cloud-operation/jupyter-mynerva.git@main",
-	}
-
-	if err := feature.Enable(); err != nil {
-		t.Fatalf("Enable: %v", err)
-	}
-
-	path := filepath.Join(runtimeDir, "notebook", "mynerva", "build.sh")
-	data, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("read build script: %v", err)
-	}
-	want := "python -m pip install --upgrade --force-reinstall --no-cache-dir 'git+https://github.com/NII-cloud-operation/jupyter-mynerva.git@main'"
-	content := string(data)
-	if !strings.Contains(content, "if ! command -v npm; then") {
-		t.Fatalf("build script does not check npm before installing repo:\n%s", content)
-	}
-	if !strings.Contains(content, "mamba install -y nodejs=22") {
-		t.Fatalf("build script does not install nodejs before installing repo:\n%s", content)
-	}
-	if !strings.Contains(content, want) {
-		t.Fatalf("build script does not install repo; want %q in:\n%s", want, content)
-	}
-	if strings.Contains(content, "/dev/null") {
-		t.Fatalf("build script redirects output to /dev/null:\n%s", content)
-	}
-}
-
-func TestMynervaEnableRejectsRepoWithoutRef(t *testing.T) {
-	feature := Mynerva{
-		RuntimeDir: t.TempDir(),
-		Repo:       "https://github.com/NII-cloud-operation/jupyter-mynerva.git",
-	}
-
-	if err := feature.Enable(); err == nil {
-		t.Fatal("Enable succeeded")
 	}
 }
 

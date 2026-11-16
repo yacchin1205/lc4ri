@@ -57,36 +57,11 @@ func (a *App) feature(args []string) (features.Feature, error) {
 		}
 		return features.NBSearch{RuntimeDir: a.runtimeDir}, nil
 	case "mynerva":
-		options, err := parseMynervaArgs(args[1:])
-		if err != nil {
-			return nil, err
+		if len(args) != 1 {
+			return nil, fmt.Errorf("invalid mynerva arguments %q\n\n%s", args[1:], usageText())
 		}
-		return features.Mynerva{RuntimeDir: a.runtimeDir, Repo: options.Repo}, nil
+		return features.Mynerva{RuntimeDir: a.runtimeDir}, nil
 	default:
 		return nil, fmt.Errorf("unknown feature %q\n\n%s", args[0], usageText())
 	}
-}
-
-type mynervaOptions struct {
-	Repo string
-}
-
-func parseMynervaArgs(args []string) (*mynervaOptions, error) {
-	options := &mynervaOptions{}
-	for i := 0; i < len(args); i++ {
-		switch args[i] {
-		case "--repo":
-			if i+1 >= len(args) {
-				return nil, fmt.Errorf("missing value for --repo\n\n%s", usageText())
-			}
-			if options.Repo != "" {
-				return nil, fmt.Errorf("duplicate --repo\n\n%s", usageText())
-			}
-			i++
-			options.Repo = args[i]
-		default:
-			return nil, fmt.Errorf("invalid mynerva argument %q\n\n%s", args[i], usageText())
-		}
-	}
-	return options, nil
 }

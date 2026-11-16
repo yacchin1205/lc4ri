@@ -33,19 +33,15 @@ Download the binary for your OS and architecture from the
 [Releases page](https://github.com/yacchin1205/lc4ri/releases), rename it to
 `lc4ri`, make it executable, and place it on your `PATH`.
 
-For example, on macOS (Apple silicon) with the latest release:
+On macOS or Linux, after downloading and renaming the binary:
 
 ```console
-$ VERSION=2026.05.2
-$ curl -L -o lc4ri \
-    https://github.com/yacchin1205/lc4ri/releases/download/v${VERSION}/lc4ri_${VERSION}_darwin_arm64
 $ chmod +x lc4ri
 $ sudo mv lc4ri /usr/local/bin/
 ```
 
-Replace `darwin_arm64` with `darwin_amd64`, `linux_amd64`, or `linux_arm64` as
-needed. On Windows, download `lc4ri_<version>_windows_<arch>.exe` and place it
-on your `PATH`.
+On Windows, download the executable for your architecture, rename it to
+`lc4ri.exe`, and place it on your `PATH`.
 
 Checksums for each release are published as `checksums.txt` on the same
 Releases page.
@@ -93,12 +89,6 @@ needed:
 $ lc4ri enable mynerva
 ```
 
-To install Mynerva from an explicit Git ref during the notebook image build:
-
-```console
-$ lc4ri enable mynerva --repo https://github.com/NII-cloud-operation/jupyter-mynerva.git@main
-```
-
 `lc4ri` builds the notebook from `.lc4ri/notebook/Dockerfile`.
 
 To edit the notebook image Dockerfile:
@@ -116,7 +106,13 @@ the notebook image build. Feature compose fragments matching
 `.lc4ri/compose.*.yaml` are loaded automatically.
 
 `lc4ri enable mynerva` adds `.lc4ri/notebook/mynerva/build.sh` to enable the
-preinstalled JupyterLab extension during the notebook image build. It also adds
+JupyterLab extension during the notebook image build. It installs
+`jupyter_mynerva` from PyPI with pip; the package dependency installs
+`nblibram`, whose wheels include the executable. The default install
+does not require Node.js or Go. See the upstream
+[Mynerva installation instructions](https://github.com/NII-cloud-operation/jupyter-mynerva#install)
+and [nblibram installation instructions](https://github.com/NII-cloud-operation/nblibram#getting-started).
+It also adds
 `.lc4ri/compose.mynerva.yaml` with `MYNERVA_SECRET_KEY` for encrypted API key
 storage.
 
@@ -221,7 +217,6 @@ At least initially, `lc4ri` is not intended to provide:
 - `lc4ri enable nbsearch`
 - `lc4ri disable nbsearch`
 - `lc4ri enable mynerva`
-- `lc4ri enable mynerva --repo git_url@ref`
 - `lc4ri disable mynerva`
 - `lc4ri image edit`
 - `lc4ri ssh keygen`

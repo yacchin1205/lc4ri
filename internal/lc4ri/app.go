@@ -82,7 +82,7 @@ commands:
   status
   logs [docker-compose-logs-options...]
   enable nbsearch
-  enable mynerva [--repo git_url@ref]
+  enable mynerva
   disable nbsearch
   disable mynerva
   image edit
